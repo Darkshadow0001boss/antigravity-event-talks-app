@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const refreshBtn = document.getElementById('refresh-btn');
     const spinnerIcon = refreshBtn.querySelector('.spinner-icon');
+    const exportBtn = document.getElementById('export-btn');
+    const themeSwitch = document.getElementById('theme-switch');
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.getElementById('status-text');
     const notesContainer = document.getElementById('notes-container');
@@ -240,7 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="note-body">
                     ${note.body_html}
                 </div>
-                <div class="card-actions">
+                <div class="card-actions" style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-sm btn-secondary copy-action-btn" data-id="${note.id}" title="Copy Update to Clipboard">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
                     <button class="btn btn-sm btn-tweet tweet-action-btn" data-id="${note.id}">
                         <i class="fa-brands fa-x-twitter"></i>
                         <span>Tweet Update</span>
@@ -249,6 +255,24 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             
             notesContainer.appendChild(card);
+        });
+
+        // Attach event listeners to Copy buttons
+        document.querySelectorAll('.copy-action-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const noteId = btn.getAttribute('data-id');
+                const note = allNotes.find(n => n.id === noteId);
+                if (note) {
+                    const textToCopy = `BigQuery Release Note [${note.date}] (${note.category}):\n${note.body_text}`;
+                    try {
+                        await navigator.clipboard.writeText(textToCopy);
+                        showToast('Copied update to clipboard!');
+                    } catch (err) {
+                        console.error('Failed to copy text:', err);
+                        showToast('Failed to copy text', 'error');
+                    }
+                }
+            });
         });
 
         // Attach event listeners to Tweet buttons
@@ -552,6 +576,86 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(twitterIntentUrl, '_blank', 'noopener,noreferrer');
         closeTweetModal();
         showToast('Opened Twitter composer!');
+    });
+
+    // Export currently filtered and sorted notes to CSV
+    function exportToCSV() {
+        if (filteredNotes.length === 0) {
+            showToast('No notes available to export', 'error');
+            return;
+        }
+
+        const headers = ['Date', 'Category', 'Update Text', 'Raw HTML', 'Feed Link'];
+        const csvRows = [headers.join(',')];
+
+        filteredNotes.forEach(note => {
+            const rowValues = [
+                note.date,
+                note.category,
+                note.body_text,
+                note.body_html,
+                `https://cloud.google.com/bigquery/docs/release-notes#${note.id.split('#')[1] || ''}`
+            ];
+
+            // Clean values (escape double quotes, wrap in quotes if contains comma, quotes, or newline)
+            const escapedValues = rowValues.map(val => {
+                const clean = (val || '').replace(/"/g, '""').replace(/\r/g, '');
+                if (/[",\n]/.test(clean)) {
+                    return `"${clean}"`;
+                }
+                return clean;
+            });
+
+            csvRows.push(escapedValues.join(','));
+        });
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        
+        // Generate a descriptive filename with date
+        const today = new Date().toISOString().split('T')[0];
+        const filename = `bigquery_release_notes_${currentCategory}_${today}.csv`;
+        link.setAttribute('download', filename);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Exported CSV successfully!');
+    }
+
+    // Export button listener
+    exportBtn.addEventListener('click', exportToCSV);
+
+    // Theme Switch Logic
+    // Check saved preference or default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+        themeSwitch.checked = true;
+    } else {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+        themeSwitch.checked = false;
+    }
+
+    themeSwitch.addEventListener('change', () => {
+        if (themeSwitch.checked) {
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
+            showToast('Switched to Light Theme');
+        } else {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+            localStorage.setItem('theme', 'dark');
+            showToast('Switched to Dark Theme');
+        }
     });
 
     // Keyboard support: Close modal with Escape key

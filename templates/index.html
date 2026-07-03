@@ -28,6 +28,21 @@
             </div>
             
             <div class="header-actions">
+                <!-- Theme Toggle Switch -->
+                <div class="theme-toggle-container">
+                    <input type="checkbox" id="theme-switch" class="theme-switch-checkbox">
+                    <label for="theme-switch" class="theme-switch-label" title="Toggle Light/Dark Theme">
+                        <i class="fa-solid fa-moon moon-icon"></i>
+                        <i class="fa-solid fa-sun sun-icon"></i>
+                        <span class="theme-switch-ball"></span>
+                    </label>
+                </div>
+
+                <button id="export-btn" class="btn btn-secondary" title="Export Current List to CSV">
+                    <i class="fa-solid fa-file-csv"></i>
+                    <span>Export CSV</span>
+                </button>
+
                 <button id="refresh-btn" class="btn btn-primary" title="Refresh Release Notes">
                     <i class="fa-solid fa-arrows-rotate spinner-icon"></i>
                     <span>Refresh</span>
